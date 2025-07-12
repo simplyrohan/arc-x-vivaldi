@@ -1,0 +1,23 @@
+{
+  "name": "arc-x-vivaldi",
+  "version": "1.0.0",
+  "description": "A simple project setup to make Vivaldi UIs.",
+  "main": "livereload.js",
+  "scripts": {
+    "build": "npx webpack",
+    "build:prod": "npx webpack --mode=production",
+    "dev": "npx webpack --watch"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "ionicons": "^8.0.13",
+    "vanjs-core": "^1.5.5",
+    "webpack": "^5.100.1",
+    "webpack-cli": "^6.0.1"
+  },
+  "devDependencies": {
+    "copy-webpack-plugin": "^13.0.0"
+  }
+}
