@@ -51,15 +51,15 @@ closeSideBar.onclick = () => {
   tabView.classList.toggle("full-width");
 };
 pageBack.onclick = () => {
-  selectedTab.view.contentWindow.history.back();
+  chrome.tabs.goBack(selectedTab.chrome.id);
 };
 
 pageForward.onclick = () => {
-  selectedTab.view.contentWindow.history.forward();
+  chrome.tabs.goForward(selectedTab.chrome.id);
 };
 
 pageRefresh.onclick = () => {
-  selectedTab.view.contentWindow.location.reload();
+  chrome.tabs.reload(selectedTab.chrome.id);
 };
 
 newTabButton.onclick = () => {
@@ -105,15 +105,6 @@ const tabItem = (tab) => {
           tabView.removeChild(tab.view);
           tab.view.remove();
 
-          localStorage.setItem(
-            "tabs",
-            JSON.stringify(
-              tabs.map((tab) => {
-                return tab.url;
-              })
-            )
-          );
-
           tab.item.style.animation =
             "slide-out-from-bottom 0.1s cubic-bezier(0.12, 0.64, 1, 1)";
           setTimeout(() => {
@@ -129,38 +120,32 @@ const tabItem = (tab) => {
 };
 
 const tabFrame = (tab) => {
-  return webview({
+  let wv = webview({
     class: "tab-frame",
-    src: tab.proxiedUrl,
+    // src: tab.url,
+    tab_id: tab.chrome.id,
     sandbox: "allow-scripts allow-forms allow-same-origin",
-    onload: (e) => {
-      let parts = e.target.contentWindow.location.pathname.slice(1).split("/");
-      let targetUrl = decodeURIComponent(
-        __uv$config.decodeUrl(parts[parts.length - 1])
-      );
-
-      tab.title = tab.view.contentWindow.document.title;
-      console.log(tab.title);
-      tab.url = targetUrl;
-      tabList.children[tabs.indexOf(tab)].children[1].textContent = tab.title;
-      tabList.children[tabs.indexOf(tab)].children[0].src =
-        getFavicon(targetUrl);
-
-      // Update URL bar
-      if (tab == selectedTab) {
-        urlInput.value = targetUrl;
-      }
-
-      localStorage.setItem(
-        "tabs",
-        JSON.stringify(
-          tabs.map((tab) => {
-            return tab.url;
-          })
-        )
-      );
-    },
   });
+
+  wv.onloadstop = async () => {
+    // let tab_chrome = (await chrome.tabs.query({})).filter(e=>e.id === tab.chrome.id)[0]
+    let tab_chrome = await chrome.tabs.get(tab.chrome.id)
+    tab.title = tab_chrome.title;
+    console.log(tab_chrome);
+    console.log(tab_chrome.title);
+    tab.url = tab_chrome.url;
+    tabList.children[tabs.indexOf(tab)].children[1].textContent = tab_chrome.title;
+    tabList.children[tabs.indexOf(tab)].children[0].src = getFavicon(
+      tab_chrome.url
+    );
+
+    // Update URL bar
+    if (tab == selectedTab) {
+      urlInput.value = tab.chrome.pendingUrl;
+    }
+  };
+
+  return wv;
 };
 
 function focusTab(tab) {
@@ -184,9 +169,9 @@ async function addTab(link) {
 
   let tab = {}; // We aren't populating this because it needs to be passed into the tabFrame and tabItem functions
 
+  tab.chrome = await chrome.tabs.create({ url: url });
   tab.title = "Loading...";
-  tab.url = search(link);
-  tab.proxiedUrl = url;
+  tab.url = url;
   tab.icon = null;
   tab.view = tabFrame(tab);
   tab.item = tabItem(tab);
